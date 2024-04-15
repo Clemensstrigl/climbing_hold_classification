@@ -6,8 +6,13 @@ sys.path.insert(0, '/home/clemens/.local/lib/python3.10/site-packages')
 import cv2 as cv
 import numpy as np
 import os
+import cv2
+import numpy as np
+import sys
+            # Read the image
 
 import math
+from preprocess_image import preprocess_image
 
 def LAB_euclidean_distance(a, b):
     eps = 1e-5
@@ -65,19 +70,54 @@ def LAB_euclidean_distance(a, b):
 
     finalResult = math.sqrt((deltaL / sl) ** 2 + (deltaC / sc) ** 2 + (deltaH / sh) ** 2 + rt * (deltaC / sc) * (deltaH / sh))
 
+
     return finalResult
 
 
-def calculate_color_average(origional_image, origional_image_blurred, x1, y1, x2, y2):
+def calculate_color_average(origional_image,origional_LAB_img, origional_image_blurred,ROI, x1, y1, x2, y2):
     color_average = np.array([0, 0, 0])
     count = 0
+    objectCutoff = True
+   
+    ROI = cv2.cvtColor(ROI, cv2.COLOR_BGR2GRAY)
+    sobelx = cv2.Sobel(ROI, cv2.CV_64F, 1, 0, ksize=3)
+    sobely = cv2.Sobel(ROI, cv2.CV_64F, 0, 1, ksize=3)
 
-    for i in range(y1,y2):
+    sobel_combined = cv2.addWeighted(cv2.convertScaleAbs(sobelx), 0.5, cv2.convertScaleAbs(sobely), 0.5, 0)
+
+    _, binary_image = cv2.threshold(sobel_combined, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    largest_contour = max(contours, key=cv2.contourArea)
+
+    mask = np.zeros_like(ROI)
+    cv2.drawContours(mask, [largest_contour], -1, (255), thickness=cv2.FILLED)
+
+    result = cv2.bitwise_and(ROI, mask)
+    if result[int((y2-y1)/2),int((x2 - x1)/2)] != 0:
+        objectCutoff = False
+  
+
+
+    for i in range(y2-y1):
         for j in range(x2 - x1):
-            orig_pixel = origional_image_blurred[y1 + i, x1 + j]
+            blurred_pixel = origional_image_blurred[y1 + i, x1 + j]
             roi_pixel = origional_image[y1 + i, x1 + j]
+            roi_pixel_lab = origional_LAB_img[y1 + i, x1 + j]
+            gray_ROI_pixel = ROI[i,j]
 
-            diff = LAB_euclidean_distance(np.float32(orig_pixel) , np.float32(roi_pixel))
+            if objectCutoff == False and result[i,j] == 0:
+                continue
+            
+            if gray_ROI_pixel > 200: 
+                continue
+
+
+
+            diff = LAB_euclidean_distance(np.float32(blurred_pixel) , np.float32(roi_pixel_lab))
+
+
             if diff > 8.3:  # Threshold for significant color difference
                 color_average += roi_pixel
                 count += 1
@@ -85,14 +125,13 @@ def calculate_color_average(origional_image, origional_image_blurred, x1, y1, x2
     if count > 0:
         color_average //= count
     
-    color_average_rgb = cv.cvtColor(np.float32([[color_average]]), cv.COLOR_LAB2BGR)[0][0]
+    #color_average_rgb = cv.cvtColor(np.float32([[color_average]]), cv.COLOR_LAB2BGR)[0][0]
 
-
-    return color_average_rgb
+    return color_average
 
 def blurr_image(img):
     max_img_dim = max(img.shape[:2])
-    ratio = max_img_dim / 800
+    ratio = max_img_dim / 300
 
     kernel_size = int(16 * ratio)
     kernel_size = kernel_size + 1 if kernel_size % 2 == 0 else kernel_size
@@ -102,6 +141,11 @@ def blurr_image(img):
     wall_colors = cv.medianBlur(img, kernel_size)
     for i in range(4):
         wall_colors = cv.medianBlur(wall_colors, kernel_size - (i * kernel_size_decr))
+
+    wall_colors = cv.cvtColor(wall_colors, cv.COLOR_BGR2LAB)
+
+    
+    return wall_colors
 
 
 def main():
@@ -138,8 +182,16 @@ def main():
         origional_file_name = origional_image_name[:len(origional_image_name) -4] + ".txt"
         origional_rect = open(os.path.join(origional_label_dir, origional_file_name))
         origional_image = cv.imread(os.path.join(origional_image_dir, origional_image_name))
+        out_file = open(os.path.join(label_data_directory , "labeled." +str(origional_file_name) + ".txt"), "w")
+
+        origional_image = preprocess_image(origional_image)
+
         h, w, _ = origional_image.shape
         origional_image_blurred = blurr_image(origional_image)
+        origional_LAB_img = cv.cvtColor(origional_image, cv.COLOR_BGR2LAB)
+
+       
+
 
         for line in origional_rect:
             display_image = origional_image.copy()
@@ -156,6 +208,16 @@ def main():
             y1 = ry - int(rh/2)
             y2 = ry + int(rh/2)
 
+            if x1 < 0:
+                x1 = 0
+            if y1 < 0:
+                y1 = 0
+            if y2 >= origional_image.shape[0]:
+                y2 = origional_image.shape[0] -1
+            if x2 >= origional_image.shape[1]:
+                x2 = origional_image.shape[1] -1
+
+
             
             blank = np.zeros(origional_image.shape[:2], dtype='uint8')
             start_point = (x1, y1) 
@@ -165,12 +227,22 @@ def main():
             #fix masking such that we can only the actual rectangle at the end when saving it to disk
             masked = cv.bitwise_and(origional_image, origional_image, mask=mask)
 
+            avg_color_mat = np.zeros((300, 300, 3), np.uint8)
+            hold_color = calculate_color_average(origional_image,origional_LAB_img,origional_image_blurred,roi,x1,y1,x2,y2)
+
+            avg_color_mat[:] = hold_color
+
             # Parse out the ROI from the original image
             
 
             # Save the ROI as a new image
             display_image = cv.rectangle(display_image, start_point, end_point, (0,0,255), 1)
             
+            cv.imshow("Hold", avg_color_mat)
+            while True:
+                        c = cv.waitKey(0)
+                        if c in [106, 99, 112, 115, 27]:
+                            break
 
 
             numpy_horizontal = np.hstack((display_image, masked))
@@ -207,13 +279,22 @@ def main():
                 label = 5
             
 
+            x1 = x1/origional_image.shape[1]
+            x2 = x2/origional_image.shape[1]
+            y2 = y2/origional_image.shape[0]
+            y1 = y1/origional_image.shape[0]
+
+            outStr = str(label) + "," + str(x1) + "," + str(y1) + "," + str(x2) + ","  +str(y2) + "," + str(hold_color[0]) + "," + str(hold_color[1]) + "," + str(hold_color[2]) 
             
 
-            cv.imwrite(str(file_index) + ".png", roi)
-            l = open(os.path.join(label_data_directory , (str(file_index) + ".txt")), "w")
-            l.write(str(label))
-            l.close()
+            #cv.imwrite(str(file_index) + ".png", roi)
+            out_file.write(outStr)
+            
             file_index = file_index + 1
+
+
+        out_file.close()
+        origional_rect.close()
 
             
 
