@@ -148,6 +148,28 @@ def blurr_image(img):
     return wall_colors
 
 
+def resize_image(image):
+    # Get dimensions of the image
+    height, width = image.shape[:2]
+    
+    # Calculate aspect ratio
+    aspect_ratio = width / height
+    
+    # Determine the new dimensions
+    if width > height:
+        new_width = 800
+        new_height = int(new_width / aspect_ratio)
+    else:
+        new_height = 800
+        new_width = int(new_height * aspect_ratio)
+    
+    # Resize the image
+    resized_image = cv2.resize(image, (new_width, new_height))
+    
+    return resized_image
+
+
+
 def main():
     alpha = 20
 
@@ -177,12 +199,15 @@ def main():
     print(origional_label_dir)
 
 
+   
+
+
     os.chdir(image_data_directory) 
     for origional_image_name in origional_images:
         origional_file_name = origional_image_name[:len(origional_image_name) -4] + ".txt"
         origional_rect = open(os.path.join(origional_label_dir, origional_file_name))
         origional_image = cv.imread(os.path.join(origional_image_dir, origional_image_name))
-        out_file = open(os.path.join(label_data_directory , "labeled." +str(origional_file_name) + ".txt"), "w")
+        out_file = open(os.path.join(label_data_directory , "labeled." + str(file_index) + ".txt"), "w")
 
         origional_image = preprocess_image(origional_image)
 
@@ -226,43 +251,43 @@ def main():
             mask = cv.rectangle(blank, start_point, end_point, 255, -1)
             #fix masking such that we can only the actual rectangle at the end when saving it to disk
             masked = cv.bitwise_and(origional_image, origional_image, mask=mask)
-
+            
             avg_color_mat = np.zeros((300, 300, 3), np.uint8)
             hold_color = calculate_color_average(origional_image,origional_LAB_img,origional_image_blurred,roi,x1,y1,x2,y2)
 
             avg_color_mat[:] = hold_color
 
-            # Parse out the ROI from the original image
-            
 
+            # for i in range(masked.shape[0]):
+            #     for j in range(masked.shape[1]):
+            #         if i <y1 and j < x1 and i > y2 and j > x2:
+            #             masked[i,j] = list(hold_color)
+
+            black_mask = cv.inRange(masked, np.array([0, 0, 0]), np.array([0, 0, 0]))
+            final_image = origional_image.copy()
+        
+            final_image[black_mask == 255] = hold_color
             # Save the ROI as a new image
             display_image = cv.rectangle(display_image, start_point, end_point, (0,0,255), 1)
             
-            cv.imshow("Hold", avg_color_mat)
-            while True:
-                        c = cv.waitKey(0)
-                        if c in [106, 99, 112, 115, 27]:
-                            break
+
+            display_image = resize_image(display_image)
+            final_image = resize_image(final_image)
+           
 
 
-            numpy_horizontal = np.hstack((display_image, masked))
+            numpy_horizontal = np.hstack((display_image, final_image))
 
-            font = cv.FONT_HERSHEY_SIMPLEX
-            bottomLeftCornerOfText = (10, numpy_horizontal.shape[0] - 10)  # Adjust position as needed
-            fontScale = 0.5
-            fontColor = (0, 0, 0)  # White color
-            lineType = 1
-            text = "Crimp: c, Juge: j, Sloper: s, Pinch: p"
-            cv.putText(numpy_horizontal, text, bottomLeftCornerOfText, font, fontScale, fontColor, lineType)
-
+           
 
             
             if label == 0:
-                cv.imshow("Hold", numpy_horizontal)
+                cv.imshow("Crimp: c, Juge: j, Sloper: s, Pinch: p, Pocket: v", numpy_horizontal)
                 while True:
                     c = cv.waitKey(0)
-                    if c in [106, 99, 112, 115, 27]:
+                    if c in [106, 99, 112, 115, 27, 118]:
                         break
+                
                 if c == 106:
                     label = 1
                 elif c == 99:
@@ -271,14 +296,16 @@ def main():
                     label = 3 
                 elif c == 115:
                     label = 4
+                elif c == 118:
+                    label = 5
                 elif c == 27:
                     origional_rect.close()
                     exit()
 
             else:
-                label = 5
+                label = 6
             
-
+            
             x1 = x1/origional_image.shape[1]
             x2 = x2/origional_image.shape[1]
             y2 = y2/origional_image.shape[0]
@@ -287,12 +314,12 @@ def main():
             outStr = str(label) + "," + str(x1) + "," + str(y1) + "," + str(x2) + ","  +str(y2) + "," + str(hold_color[0]) + "," + str(hold_color[1]) + "," + str(hold_color[2]) 
             
 
-            #cv.imwrite(str(file_index) + ".png", roi)
+            
             out_file.write(outStr)
             
             file_index = file_index + 1
 
-
+        cv.imwrite(str(file_index) + ".png", origional_image)
         out_file.close()
         origional_rect.close()
 
