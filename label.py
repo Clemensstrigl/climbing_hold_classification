@@ -300,6 +300,8 @@ def main():
                     label = 5
                 elif c == 27:
                     origional_rect.close()
+                    cv.imwrite(str(file_index) + ".png", origional_image)
+                    out_file.close()
                     exit()
 
             else:
@@ -311,14 +313,14 @@ def main():
             y2 = y2/origional_image.shape[0]
             y1 = y1/origional_image.shape[0]
 
-            outStr = str(label) + "," + str(x1) + "," + str(y1) + "," + str(x2) + ","  +str(y2) + "," + str(hold_color[0]) + "," + str(hold_color[1]) + "," + str(hold_color[2]) 
+            outStr = str(label) + "," + str(x1) + "," + str(y1) + "," + str(x2) + ","  +str(y2) + "," + str(hold_color[0]) + "," + str(hold_color[1]) + "," + str(hold_color[2]) +"\n"
             
 
             
             out_file.write(outStr)
             
-            file_index = file_index + 1
-
+            
+        file_index = file_index + 1
         cv.imwrite(str(file_index) + ".png", origional_image)
         out_file.close()
         origional_rect.close()
