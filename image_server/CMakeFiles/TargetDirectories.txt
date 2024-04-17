@@ -1,0 +1,3 @@
+/home/clemens/school/490/src/image_server/CMakeFiles/process_image.dir
+/home/clemens/school/490/src/image_server/CMakeFiles/edit_cache.dir
+/home/clemens/school/490/src/image_server/CMakeFiles/rebuild_cache.dir
