@@ -1177,24 +1177,14 @@ extern "C"
         
 
         cv::Mat mobile_image = *reader->getImg();
-        cv::Mat depth_img = *reader->getDepthImg();
+        
         cv::Mat hold_loc = *reader->getHoldLoc();
-        cv::Mat human_loc = *reader->getHumanLoc();
         std::cout << "hold_loc Mat:" << std::endl;
         std::cout << hold_loc << std::endl<< std::endl<< std::endl<< std::endl;
 
-        std::cout << "human_loc Mat:" << std::endl;
-        std::cout << human_loc << std::endl;
-
         
 
-
-        struct human_t * human_ref = new struct human_t;
-        human_ref->depth_x = depth_img.cols * 0.50;
-        human_ref->depth_y = depth_img.rows * 0.85;
-        human_ref->ratio = 0.3;
-        human_ref->size_in_pxls = mobile_image.rows/7;
-
+        
         //printf("Human Height: %f at ref pixels: %fx%f\n", human_ref->size_in_pxls, human_ref->depth_x,human_ref->depth_y);
         //print_box_results(hold_loc);
         ////printf("HUMAN LOCATIONS:\n");
@@ -1279,68 +1269,6 @@ extern "C"
 
 
 
-
-        //COLOR_DISTANCE_THRES box_t+0.65
-
-     printf("finished increasing box_saturation\n");
-
-        dbscan(box_loc_color, depth_img, human_ref->size_in_pxls*1.36, 8.5, 3, &num_labels);
-
-
-     printf("finished dbscan\n");
-
-        convert_Box_color_LAB_to_RGB(box_loc_color, false);
-     printf("finished convert_Box_color_LAB_to_RGB\n");
-
-        avg_color_based_labels(box_loc_color);
-     printf("finished avg_color_based_labels\n");
-
-        calculate_avg_cluster_pathing(box_loc_color);
-
-     printf("Completed calculate_avg_cluster_pathing\n");
-
-
-
-
-
-    //     img_color_classify = mobile_image ;
-
-    // //     cv::Mat graph_mat(cv::Size(mobile_image.cols, mobile_image.rows), CV_8UC3,cv::Scalar(0, 0, 0) );
-
-    // //     graph_mat = cv::Scalar::all(0);
-    // //     draw_circle(graph_mat, box_loc_color);
-    //      draw_circle(img_color_classify, box_loc_color);
-    //  //   draw_rectangle(img_color_classify, human_loc);
-    // //    // draw_rectangle_around_cluster(img_color_classify,box_loc_color);
-
-    // //     draw_path(graph_mat,box_loc_color);
-    //     draw_path(img_color_classify,box_loc_color);
-
-    // //     resize_img(img_color_classify, img_color_classify, 500);
-    // //     resize_img(graph_mat, graph_mat, 500);
-
-
-
-
-    //      cv::imshow("img_color_classify", img_color_classify);
-    // //     cv::imshow("img_Graph", graph_mat);
-
-
-
-
-    //     int k;
-    //     while(k = cv::waitKey(0)){
-    //     if(k == 'c')
-    //         exit(0);
-        
-    //     if(k == 'n'){
-    //          break;
-    //     }
-    //     }
-
-        
-
-
         PyImgWriter* ret_obj = convert2PyWirterObj(box_loc_color);
 
         //delete human_ref;   
@@ -1400,33 +1328,10 @@ extern "C"
 
         printf("paths count: %d\n", paths.size());
 
-        cv::Mat paths_mat = cv::Mat::zeros((int)paths.size(), highestPathCount*PATH_MAT_OUTPUT_ATTRIBUTE_COUNT, CV_32S);
         
-        for (int i = 0; i < (int)paths.size(); ++i) {
-            for (int j = 0; j < highestPathCount; ++j ) {
-                int * path_output;
-                printf("Path %d: Current: %d\n", i, j);
-                if (j < (int)paths[i].size()) path_output = paths[i][j]->py_Out();
-                else{
-                    path_output = new int[PATH_MAT_OUTPUT_ATTRIBUTE_COUNT];
-                    for (int k=0; k<PATH_MAT_OUTPUT_ATTRIBUTE_COUNT; k++)
-                        path_output[k] = -1;
-                }
-
-                
-                
-                
-                for(int k = 0; k < PATH_MAT_OUTPUT_ATTRIBUTE_COUNT; ++k){
-                    printf("Val: %d\n",path_output[k]);
-                    paths_mat.at<int>(i, j*PATH_MAT_OUTPUT_ATTRIBUTE_COUNT + k) = path_output[k];
-                }
-                delete path_output;
-                
-            }
-        }
 
 
-        return new PyImgWriter(box_mat,paths_mat);
+        return new PyImgWriter(box_mat);
   
     }
 

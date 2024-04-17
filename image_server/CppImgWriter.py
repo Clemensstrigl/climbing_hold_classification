@@ -33,8 +33,6 @@ class CppImgWriter:
     
     def __init__(self,
                  img = None,
-                 depth_img = None,
-                 human_loc = None,
                  hold_loc = None,                
                  libname = 'libPyImageReader.so',
                  lib=None):
@@ -70,8 +68,7 @@ class CppImgWriter:
         # serialize img's data, storing its original shape
         # and OpenCV Mat type
         (arr_img, shape_img, cvtype_img) = npArr2CArr(img)
-        (arr_depth_img, _, cvtype_depth_img) = npArr2CArr(depth_img)
-        (arr_human_loc, shape_human_loc, cvtype_human_loc) = npArr2CArr(human_loc)
+        
         (arr_hold_loc, shape_hold_loc, cvtype_hold_loc) = npArr2CArr(hold_loc)
         print("data transform complete")
         # instantiate a C++ PyImgReader object and store
@@ -82,9 +79,7 @@ class CppImgWriter:
         
         # a reference to a C++ PyImgReader object
         self.cobj = newwriter(arr_img, shape_img[0], shape_img[1], cvtype_img, 
-                              arr_depth_img, cvtype_depth_img,
                               arr_hold_loc, shape_hold_loc[0],shape_hold_loc[1],cvtype_hold_loc,
-                              arr_human_loc,shape_human_loc[0],shape_human_loc[1],cvtype_human_loc
                               )
         print("self.obj assigned")
 

@@ -1,6 +1,5 @@
 from celery import shared_task
 import redis
-from beta_api.models import DataInstance
 import os
 from typing import List, Optional
 #from ml_base.decorator import MLModelDecorator
@@ -10,22 +9,18 @@ import cv2
 import torch
 from ultralytics import YOLO
 import numpy as np
-import beta_api.ml_models as ml_models
-from beta_api.preprocess_image import preprocess_image
+import ml_models as ml_models
+from preprocess_image import preprocess_image
 import ctypes as ct
-from beta_api.CppImgWriter import CppImgWriter
-from beta_api.CppImgReader import CppImgReader
+from CppImgWriter import CppImgWriter
+from CppImgReader import CppImgReader
 import uuid
-from betasprayer_backend.settings import BASE_DIR
 
 #potentially set Prefet Multiplier to 1
 @shared_task()
-def task_execute(job_params):
-    print("In Task Execution with UUID: " + job_params["data_instance_uuid"])
-    uuid_obj = uuid.UUID(job_params["data_instance_uuid"])
-    instance = DataInstance.objects.get(id=uuid_obj)
+def task_execute(img, model):
     
-    img = instance.get_data_as_image()
+    
     
    # img = cv2.resize(decoded_image, (data_instance.image_width, data_instance.image_height), interpolation= cv2.INTER_LINEAR)
 
@@ -45,7 +40,7 @@ def task_execute(job_params):
       ml_results[ml_id] = ml_models.load_and_predict(ml_id, img)
     
     print("prediction complete")
-    c_lib_location = os.path.join(BASE_DIR, os.environ.get("C_LIB_LOC"))
+    c_lib_location = os.path.join("libprocess_image.so")
     
     c_lib = ct.CDLL(c_lib_location)
     print(c_lib_location)

@@ -31,7 +31,7 @@ class PyImgWriter
     public:
     /* the source image
     */
-    cv::Mat box_mat, paths_mat;
+    cv::Mat box_mat;
     
     /* constructor that receives a pointer to the image
        to be serialized
@@ -58,11 +58,11 @@ class PyImgWriter
     // */
     // int getDims();
 
-    PyImgWriter(cv::Mat box_mat, cv::Mat paths_mat)
+    PyImgWriter(cv::Mat box_mat)
     {
         //copies the content of img to the object, for memory safety
         this->box_mat = box_mat.clone();
-        this->paths_mat = paths_mat.clone();
+        
 
         
     }
@@ -98,37 +98,6 @@ class PyImgWriter
                 + ( (this->box_mat.channels() > 1) ? 1 : 0 )
             );
     }
-    
-    unsigned char*  getPathMat()
-    {
-        return this->paths_mat.data;
-    }
-
-
-    unsigned int*  getPathShape()
-    {
-        unsigned int* result = (unsigned int*)malloc(3 * sizeof(unsigned int));
-
-        result[0] = this->paths_mat.rows;
-        result[1] = this->paths_mat.cols;
-        result[2] = this->paths_mat.channels();
-
-        return result;
-    }
-
-
-    int  getPathType()
-    {
-        return this->paths_mat.type();
-    }
-
-
-    int  getPathDims()
-    {
-        return (this->paths_mat.dims
-                + ( (this->paths_mat.channels() > 1) ? 1 : 0 )
-            );
-    }
 };
 
 /** Wrappers for PyImgWriter's methods, to be called by python,
@@ -139,9 +108,9 @@ extern "C"
     /** Wrapper that creates and returns a PyImgWriter
      *  same arguments as PyImgWriter's constructor
     */
-    PyImgWriter* PyImgW_new(cv::Mat boxMat, cv::Mat pathMat)
+    PyImgWriter* PyImgW_new(cv::Mat boxMat)
     {
-        return new PyImgWriter(boxMat,pathMat);
+        return new PyImgWriter(boxMat);
     }
     
     
@@ -152,10 +121,7 @@ extern "C"
         return obj->getBoxMat();
     }
 
-    unsigned char* PyImgW_getPathMat(PyImgWriter* obj)
-    {
-        return obj->getPathMat();
-    }
+   
 
 
     /** Wrapper that returns a PyImgWriter shape array
@@ -164,10 +130,7 @@ extern "C"
     {
         return obj->getBoxShape();
     }
-    unsigned int* PyImgW_getPathShape(PyImgWriter* obj)
-    {
-        return obj->getPathShape();
-    }
+    
 
 
     /** Wrapper that returns a PyImgWriter OpenCV type constant
@@ -176,10 +139,7 @@ extern "C"
     {
         return obj->getBoxType();
     }
-    int PyImgW_getPathType(PyImgWriter* obj)
-    {
-        return obj->getPathType();
-    }
+    
     
     
     /** Wrapper that returns a PyImgWriter's number of dimensions
@@ -188,10 +148,7 @@ extern "C"
     {
         return obj->getBoxDims();
     }
-    int PyImgW_getPathDims(PyImgWriter* obj)
-    {
-        return obj->getPathDims();
-    }
+    
 
     /** Wrapper that deletes a PyImgWriter
     */
