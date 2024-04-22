@@ -285,7 +285,7 @@ def main():
                 cv.imshow("Crimp: c, Juge: j, Sloper: s, Pinch: p, Pocket: v", numpy_horizontal)
                 while True:
                     c = cv.waitKey(0)
-                    if c in [106, 99, 112, 115, 27, 118]:
+                    if c in [106, 99, 112, 115, 27, 118]: #['j', 'c', 'p', 's', '\x1b', 'v']
                         break
                 
                 if c == 106:
