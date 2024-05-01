@@ -320,10 +320,11 @@ def main():
             out_file.write(outStr)
             
             
-        file_index = file_index + 1
         cv.imwrite(str(file_index) + ".png", origional_image)
         out_file.close()
         origional_rect.close()
+        file_index = file_index + 1
+
 
             
 
